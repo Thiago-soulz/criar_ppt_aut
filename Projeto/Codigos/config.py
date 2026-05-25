@@ -13,6 +13,7 @@ else:
 TEMPLATE_PATH = os.path.join(BASE_DIR, "template", "template.pptx")
 CONFIG_PATH = os.path.join(BASE_DIR, "crop_config.json")
 OUTPUT_PATH = os.path.join(BASE_DIR, "Analise_Pallets_Final.pptx")
+PNG_DIR = os.path.join(BASE_DIR, "Codigos", "PNG")
 
 # Zoom do preview — 1x para coordenadas baterem com o PDF
 PREVIEW_ZOOM = 1

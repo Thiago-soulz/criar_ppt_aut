@@ -143,24 +143,21 @@ def _adicionar_imagens(slide, arquivos_pdf, cfg, callback_status):
                 largura_slide = cfg["largura_max"]
                 altura_slide = largura_slide / proporcao
 
-            offset_x = (cfg["largura_max"] - largura_slide) / 2
-            offset_y = (cfg["altura_max"] - altura_slide) / 2
-
             slide.shapes.add_picture(
                 imagem_temp,
-                Inches(x + offset_x),
-                Inches(y + offset_y),
+                Inches(x),
+                Inches(y),
                 width=Inches(largura_slide),
                 height=Inches(altura_slide)
             )
 
-            x += cfg["largura_max"] + cfg["esp_x"]
+            x += largura_slide + cfg["esp_x"]
             coluna += 1
 
             if coluna >= cfg["colunas"]:
                 coluna = 0
                 x = cfg["x_inicio"]
-                y += cfg["altura_max"] + cfg["esp_y"]
+                y += altura_slide + cfg["esp_y"]
 
         except Exception as erro:
             print(f"Erro ao inserir imagem {nome_pdf}: {erro}")

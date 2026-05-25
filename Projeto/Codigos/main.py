@@ -1,4 +1,5 @@
-import os #C:/Python314/python.exe -m pip install pillow pandas pymupdf python-pptx openpyxl
+import os
+import sys
 import tempfile
 
 import tkinter as tk
@@ -11,7 +12,7 @@ import crop_config
 import excel_reader
 import pdf_converter
 import pptx_builder
-from config import PREVIEW_ZOOM
+from config import PREVIEW_ZOOM, PNG_DIR
 
 
 # ── Estado da aplicação ────────────────────────────────────────────────────────
@@ -49,8 +50,8 @@ COR_BTN_VERDE   = "#16A34A"
 COR_BTN_VERDE_H = "#15803D"
 COR_STATUS      = "#2563EB"
 
-# Pasta onde esta o logo
-_LOGO_DIR = r"C:\Users\thiag\OneDrive\Área de Trabalho\criar_ppt_aut1\Projeto\Codigos\PNG"
+# Pasta onde está o logo (vem do config.py que já resolve o caminho dinamicamente)
+_LOGO_DIR = PNG_DIR
 
 
 def _encontrar_logo():
@@ -67,7 +68,7 @@ def _encontrar_logo():
 
 
 def _carregar_logo(altura=40):
-    """Carrega o PNG da Bosch (ja transparente) mantendo proporcao."""
+    """Carrega o PNG da Bosch (já transparente) mantendo proporção."""
     caminho = _encontrar_logo()
     if not caminho:
         print("[DEBUG] Logo nao encontrado!")
@@ -129,7 +130,7 @@ def abrir_configuracoes():
         ("Número de colunas",         "colunas",     "int", "Imagens por linha"),
         ("Tamanho da imagem (cm)",     "largura_max", "cm",  "Largura — altura ajusta proporcional"),
         ("Espaço entre colunas (cm)",  "esp_x",       "cm",  "Espaço horizontal"),
-        ("Espaço entre linhas (cm)",   "esp_y",       "cm",  "Espaço vertical"),
+        ("Espaço entre lines (cm)",   "esp_y",       "cm",  "Espaço vertical"),
         ("Posição inicial X (cm)",     "x_inicio",    "cm",  "Distância da borda esquerda"),
         ("Posição inicial Y (cm)",     "y_inicio",    "cm",  "Distância do topo"),
     ]
@@ -283,11 +284,12 @@ def selecionar_modo(modo):
                             child.config(bg=COR_CARD)
 
     if modo == "recorte":
-        frame_recorte_info.pack(fill=tk.X, pady=(8, 0), after=frame_cards)
-        janela.geometry("660x840")
+        # MODIFICADO: Agora insere após o frame invisível externo da pasta (fora do quadrado branco)
+        frame_recorte_info.pack(fill=tk.X, pady=(6, 4), after=frame_pasta_geral)
+        janela.geometry("450x640")  # Modificado: Altura reduzida com recorte
     else:
         frame_recorte_info.pack_forget()
-        janela.geometry("660x760")
+        janela.geometry("450x560")  # Modificado: Largura e Altura reduzidas
 
 
 def selecionar_planilha():
@@ -385,7 +387,7 @@ def gerar():
 
 janela = tk.Tk()
 janela.title("Sistema de Pallets")
-janela.geometry("660x760")
+janela.geometry("540x620")  # Modificado: Inicialmente menor
 janela.resizable(False, False)
 janela.configure(bg=COR_BG)
 
@@ -393,32 +395,28 @@ _carregar_config_padrao()
 
 # ── Topbar com logo ───────────────────────────────────────────────────────────
 
-topbar = tk.Frame(janela, bg=COR_SIDEBAR, height=64)
+topbar = tk.Frame(janela, bg=COR_SIDEBAR, height=54)  # Modificado: altura reduzida de 64 para 54
 topbar.pack(side=tk.TOP, fill=tk.X)
 topbar.pack_propagate(False)
 
-# Linha vermelha vertical esquerda
 tk.Frame(topbar, bg=COR_ACENTO, width=4).pack(side=tk.LEFT, fill=tk.Y)
 
-# Logo na topbar
-frame_logo_top = tk.Frame(topbar, bg=COR_SIDEBAR, padx=18)
+frame_logo_top = tk.Frame(topbar, bg=COR_SIDEBAR, padx=14)
 frame_logo_top.pack(side=tk.LEFT, fill=tk.Y)
 
-_tk_logo_top = _carregar_logo(altura=38)
+_tk_logo_top = _carregar_logo(altura=32)  # Modificado: Reduzido de 38 para 32
 if _tk_logo_top:
     lbl_logo_top = tk.Label(frame_logo_top, image=_tk_logo_top, bg=COR_SIDEBAR)
     lbl_logo_top.image = _tk_logo_top
     lbl_logo_top.pack(expand=True)
 else:
-    # Fallback: ícone círculo + texto BOSCH em vermelho
     frame_fallback = tk.Frame(frame_logo_top, bg=COR_SIDEBAR)
     frame_fallback.pack(expand=True)
-    tk.Label(frame_fallback, text="⊕", font=("Segoe UI", 20),
+    tk.Label(frame_fallback, text="⊕", font=("Segoe UI", 16),
              bg=COR_SIDEBAR, fg=COR_ACENTO).pack(side=tk.LEFT)
-    tk.Label(frame_fallback, text=" BOSCH", font=("Segoe UI", 16, "bold"),
+    tk.Label(frame_fallback, text=" BOSCH", font=("Segoe UI", 14, "bold"),
              bg=COR_SIDEBAR, fg=COR_ACENTO).pack(side=tk.LEFT)
 
-# Botão de configurações discreto no canto direito da topbar
 frame_cfg_btn = tk.Frame(topbar, bg=COR_SIDEBAR, padx=12)
 frame_cfg_btn.pack(side=tk.RIGHT, fill=tk.Y)
 
@@ -426,8 +424,8 @@ _cfg_img_path = os.path.join(_LOGO_DIR, "config.png")
 _tk_cfg_icon = None
 try:
     _cfg_img = Image.open(_cfg_img_path).convert("RGBA")
-    _cfg_ratio = 26 / _cfg_img.height
-    _cfg_img = _cfg_img.resize((int(_cfg_img.width * _cfg_ratio), 26), Image.LANCZOS)
+    _cfg_ratio = 20 / _cfg_img.height  # Modificado: Reduzido de 26 para 20
+    _cfg_img = _cfg_img.resize((int(_cfg_img.width * _cfg_ratio), 20), Image.LANCZOS)
     _tk_cfg_icon = ImageTk.PhotoImage(_cfg_img)
 except Exception:
     pass
@@ -438,66 +436,61 @@ if _tk_cfg_icon:
                             bd=0, highlightthickness=0,
                             command=abrir_configuracoes)
     btn_cfg_top.image = _tk_cfg_icon
-    btn_cfg_top.pack(side=tk.TOP, pady=(8, 2))
+    btn_cfg_top.pack(side=tk.TOP, pady=(6, 1))
 else:
     btn_cfg_top = tk.Button(frame_cfg_btn, text="⚙",
-                            font=("Segoe UI", 16), bg=COR_SIDEBAR,
+                            font=("Segoe UI", 14), bg=COR_SIDEBAR,
                             fg=COR_SUBTEXTO, relief="flat", cursor="hand2",
                             bd=0, highlightthickness=0,
                             command=abrir_configuracoes)
-    btn_cfg_top.pack(side=tk.TOP, pady=(10, 2))
+    btn_cfg_top.pack(side=tk.TOP, pady=(6, 1))
 
 tk.Label(frame_cfg_btn, text="Configurar", font=("Segoe UI", 7),
          bg=COR_SIDEBAR, fg=COR_SUBTEXTO, cursor="hand2").pack(side=tk.TOP)
 
-# Separador horizontal sob a topbar
 tk.Frame(janela, bg=COR_BORDA, height=1).pack(fill=tk.X)
 
 # ── Conteúdo principal ────────────────────────────────────────────────────────
 
-conteudo = tk.Frame(janela, bg=COR_BG, padx=32, pady=16)
+conteudo = tk.Frame(janela, bg=COR_BG, padx=24, pady=12)  # Modificado: Padding reduzido
 conteudo.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-# Título
 tk.Label(conteudo, text="SISTEMA DE PALLETS",
-         font=("Segoe UI", 20, "bold"), bg=COR_BG, fg=COR_TEXTO).pack(anchor="w")
+         font=("Segoe UI", 16, "bold"), bg=COR_BG, fg=COR_TEXTO).pack(anchor="w")  # Modificado: Fonte 20 -> 16
 
-# Linha vermelha decorativa sob o título
-tk.Frame(conteudo, bg=COR_ACENTO, height=3, width=52).pack(anchor="w", pady=(4, 12))
+tk.Frame(conteudo, bg=COR_ACENTO, height=3, width=42).pack(anchor="w", pady=(2, 10))
 
 # ── Cards de modo ─────────────────────────────────────────────────────────────
 
-tk.Label(conteudo, text="Modo de geração", font=("Segoe UI", 10, "bold"),
-         bg=COR_BG, fg=COR_TEXTO).pack(anchor="w", pady=(0, 10))
+tk.Label(conteudo, text="Modo de geração", font=("Segoe UI", 9, "bold"),
+         bg=COR_BG, fg=COR_TEXTO).pack(anchor="w", pady=(0, 6))
 
 frame_cards = tk.Frame(conteudo, bg=COR_BG)
-frame_cards.pack(fill=tk.X, pady=(0, 4))
+frame_cards.pack(fill=tk.X, pady=(0, 2))
 
 modo_cards = []
 
 
 def criar_card(parent, modo, canvas_draw, titulo, descricao):
-    """Cria card com ícone desenhado em Canvas para melhor fidelidade visual."""
     card = tk.Frame(parent, bg=COR_CARD, cursor="hand2",
                     highlightbackground=COR_BORDA, highlightthickness=1,
                     padx=0, pady=0)
-    card.pack(side=tk.LEFT, padx=(0, 12), ipadx=0, ipady=0)
-    card.config(width=170, height=170)
+    card.pack(side=tk.LEFT, padx=(0, 10), ipadx=0, ipady=0)
+    card.config(width=145, height=135)  # Modificado: Cards menores (170x170 -> 145x135)
     card.pack_propagate(False)
 
-    inner = tk.Frame(card, bg=COR_CARD, padx=16, pady=18)
+    inner = tk.Frame(card, bg=COR_CARD, padx=10, pady=10)  # Modificado: padding interno menor
     inner.pack(expand=True, fill=tk.BOTH)
 
-    # Canvas para ícone
-    cnv = tk.Canvas(inner, width=40, height=40, bg=COR_CARD,
-                    highlightthickness=0, bd=0)
+    cnv = tk.Canvas(inner, width=32, height=32, bg=COR_CARD,
+                    highlightthickness=0, bd=0)  # Modificado: canvas menor
     cnv.pack()
     canvas_draw(cnv, "#000000")
 
-    tk.Label(inner, text=titulo, font=("Segoe UI", 10, "bold"),
-             bg=COR_CARD, fg="#000000").pack(pady=(8, 3))
-    tk.Label(inner, text=descricao, font=("Segoe UI", 8, "bold"),
-             bg=COR_CARD, fg="#000000", wraplength=130, justify="center").pack()
+    tk.Label(inner, text=titulo, font=("Segoe UI", 9, "bold"),
+             bg=COR_CARD, fg="#000000").pack(pady=(4, 2))
+    tk.Label(inner, text=descricao, font=("Segoe UI", 8),
+             bg=COR_CARD, fg="#000000", wraplength=125, justify="center").pack()
 
     def bind_click(widget):
         widget.bind("<Button-1>", lambda e, m=modo: selecionar_modo(m))
@@ -508,77 +501,38 @@ def criar_card(parent, modo, canvas_draw, titulo, descricao):
     return card
 
 
-def draw_grid(cnv, cor):
-    """Ícone grade 2×2 (Página Inteira)."""
-    g = 8
-    for row in range(2):
-        for col in range(2):
-            x1 = 4 + col * (g + 4)
-            y1 = 4 + row * (g + 4)
-            cnv.create_rectangle(x1, y1, x1 + g, y1 + g,
-                                  fill=cor, outline="")
-    # segunda linha de blocos maiores para parecer grade 2×2
-    for row in range(2):
-        for col in range(2):
-            x1 = 4 + col * 20
-            y1 = 4 + row * 20
-            cnv.create_rectangle(x1, y1, x1 + 14, y1 + 14,
-                                  fill=cor, outline="")
-
-
 def draw_crop(cnv, cor):
-    """Ícone recorte (cantos em L)."""
-    s = 36
-    t = 4  # espessura
-    m = 2  # margem
-    L = 12  # comprimento do L
-    # canto superior esquerdo
+    s = 28  # Modificado: Ajustado para o novo tamanho de canvas
+    t = 3
+    m = 2
+    L = 10
     cnv.create_rectangle(m, m, m + L, m + t, fill=cor, outline="")
     cnv.create_rectangle(m, m, m + t, m + L, fill=cor, outline="")
-    # canto superior direito
     cnv.create_rectangle(s - L, m, s, m + t, fill=cor, outline="")
     cnv.create_rectangle(s - t, m, s, m + L, fill=cor, outline="")
-    # canto inferior esquerdo
     cnv.create_rectangle(m, s - t, m + L, s, fill=cor, outline="")
     cnv.create_rectangle(m, s - L, m + t, s, fill=cor, outline="")
-    # canto inferior direito
     cnv.create_rectangle(s - L, s - t, s, s, fill=cor, outline="")
     cnv.create_rectangle(s - t, s - L, s, s, fill=cor, outline="")
 
 
-def draw_gear(cnv, cor):
-    """Ícone engrenagem simplificado."""
-    import math
-    cx, cy, r_out, r_in = 20, 20, 14, 8
-    dentes = 8
-    pts = []
-    for i in range(dentes * 2):
-        angle = math.radians(i * 180 / dentes)
-        r = r_out if i % 2 == 0 else r_in
-        pts.append(cx + r * math.cos(angle))
-        pts.append(cy + r * math.sin(angle))
-    cnv.create_polygon(pts, fill=cor, outline="")
-    cnv.create_oval(cx - 5, cy - 5, cx + 5, cy + 5, fill=COR_CARD, outline="")
-
-
 def draw_pagina_png(cnv, cor):
-    """Ícone Página Inteira: carrega pagina.png da mesma pasta do logo."""
     caminho_png = os.path.join(_LOGO_DIR, "pagina.png")
     try:
         img = Image.open(caminho_png).convert("RGBA")
-        img = img.resize((36, 36), Image.LANCZOS)
+        img = img.resize((28, 28), Image.LANCZOS)  # Modificado: Reduzido de 36 para 28
         photo = ImageTk.PhotoImage(img)
-        cnv._pagina_img = photo  # manter referência
+        cnv._pagina_img = photo
         cnv.create_image(2, 2, anchor="nw", image=photo)
     except Exception:
-        # Fallback: desenha retângulo simples representando página
-        cnv.create_rectangle(6, 2, 30, 38, fill=cor, outline="")
-        cnv.create_rectangle(6, 2, 22, 10, fill=cor, outline="")
-        cnv.create_polygon(22, 2, 30, 10, 22, 10, fill=cor, outline="")
+        cnv.create_rectangle(6, 2, 26, 30, fill=cor, outline="")
+        cnv.create_rectangle(6, 2, 18, 8, fill=cor, outline="")
+        cnv.create_polygon(18, 2, 26, 8, 18, 8, fill=cor, outline="")
+
 
 def draw_crop_preto(cnv, cor):
-    """Ícone recorte (cantos em L) em preto."""
     draw_crop(cnv, "#000000")
+
 
 card_pagina  = criar_card(frame_cards, "pagina",  draw_pagina_png, "Página Inteira",
                            "Gera a apresentação\ncom todas as páginas.")
@@ -587,99 +541,97 @@ card_recorte = criar_card(frame_cards, "recorte", draw_crop_preto, "Recorte",
 
 modo_cards = [("pagina", None, card_pagina), ("recorte", None, card_recorte)]
 
-# ── Frame recorte info (oculto por padrão) ────────────────────────────────────
-
-frame_recorte_info = tk.Frame(conteudo, bg="#FFF7ED",
-                               highlightbackground="#F97316", highlightthickness=1,
-                               padx=14, pady=10)
-
-# Lado esquerdo: ícone + label de status
-frame_recorte_esq = tk.Frame(frame_recorte_info, bg="#FFF7ED")
-frame_recorte_esq.pack(side=tk.LEFT, fill=tk.X, expand=True)
-
-tk.Label(frame_recorte_esq, text="✂  Área de Recorte",
-         font=("Segoe UI", 9, "bold"), bg="#FFF7ED", fg="#C2410C").pack(anchor="w")
-
-label_recorte_info = tk.Label(frame_recorte_esq,
-    text="Nenhuma área definida — clique em Definir para selecionar",
-    font=("Segoe UI", 8), bg="#FFF7ED", fg="#9A3412")
-label_recorte_info.pack(anchor="w", pady=(2, 0))
-
-# Lado direito: botão
-tk.Button(frame_recorte_info, text="✂  Definir Área",
-          font=("Segoe UI", 9, "bold"), bg="#F97316", fg="white",
-          relief="flat", cursor="hand2", padx=14, pady=6,
-          command=definir_recorte).pack(side=tk.RIGHT)
-
 # ── Separador ─────────────────────────────────────────────────────────────────
 
-tk.Frame(conteudo, bg=COR_BORDA, height=1).pack(fill=tk.X, pady=10)
+tk.Frame(conteudo, bg=COR_BORDA, height=1).pack(fill=tk.X, pady=8)
 
 # ── Seleção de arquivos ───────────────────────────────────────────────────────
 
 def _draw_file_icon(parent, bg):
-    """Desenha ícone de arquivo em Canvas pequeno."""
-    cnv = tk.Canvas(parent, width=22, height=22, bg=bg,
+    cnv = tk.Canvas(parent, width=20, height=20, bg=bg,
                     highlightthickness=0, bd=0)
-    # corpo do documento
-    cnv.create_rectangle(3, 1, 17, 21, fill="#CBD5E1", outline="")
-    cnv.create_rectangle(3, 1, 13, 7, fill="#94A3B8", outline="")
-    cnv.create_polygon(13, 1, 17, 5, 13, 5, fill="#94A3B8", outline="")
-    # linhas
-    cnv.create_rectangle(5, 9,  15, 10, fill="#64748B", outline="")
-    cnv.create_rectangle(5, 12, 15, 13, fill="#64748B", outline="")
-    cnv.create_rectangle(5, 15, 11, 16, fill="#64748B", outline="")
+    cnv.create_rectangle(3, 1, 17, 19, fill="#CBD5E1", outline="")
+    cnv.create_rectangle(3, 1, 12, 6,  fill="#94A3B8", outline="")
+    cnv.create_polygon(12, 1, 17, 6, 12, 6, fill="#94A3B8", outline="")
+    cnv.create_rectangle(5, 8,  15, 9, fill="#64748B", outline="")
+    cnv.create_rectangle(5, 11, 15, 12, fill="#64748B", outline="")
+    cnv.create_rectangle(5, 14, 11, 15, fill="#64748B", outline="")
     return cnv
 
 
 def _draw_folder_icon(parent, bg):
-    cnv = tk.Canvas(parent, width=22, height=22, bg=bg,
+    cnv = tk.Canvas(parent, width=20, height=20, bg=bg,
                     highlightthickness=0, bd=0)
-    cnv.create_rectangle(1, 8, 21, 20, fill="#94A3B8", outline="")
-    cnv.create_rectangle(1, 5, 10, 9,  fill="#CBD5E1", outline="")
+    cnv.create_rectangle(1, 7, 19, 19, fill="#94A3B8", outline="")
+    cnv.create_rectangle(1, 4, 9, 8,  fill="#CBD5E1", outline="")
     return cnv
 
 
 def arquivo_row(parent, label_titulo, icone_fn, comando, placeholder):
-    frame = tk.Frame(parent, bg=COR_CARD,
+    # Criado um frame invisível geral para podermos organizar com segurança o 'after' do pack
+    frame_geral = tk.Frame(parent, bg=COR_BG)
+    frame_geral.pack(fill=tk.X, pady=4)
+
+    frame = tk.Frame(frame_geral, bg=COR_CARD,
                      highlightbackground=COR_BORDA, highlightthickness=1,
-                     padx=16, pady=12)
-    frame.pack(fill=tk.X, pady=5)
+                     padx=12, pady=8)  # Modificado: Padding reduzido
+    frame.pack(fill=tk.X)
 
     tk.Label(frame, text=label_titulo, font=("Segoe UI", 9, "bold"),
-             bg=COR_CARD, fg=COR_TEXTO).pack(anchor="w", pady=(0, 6))
+             bg=COR_CARD, fg=COR_TEXTO).pack(anchor="w", pady=(0, 4))
 
     row = tk.Frame(frame, bg=COR_CARD)
     row.pack(fill=tk.X)
 
-    # Ícone
     icone = icone_fn(row, COR_CARD)
-    icone.pack(side=tk.LEFT, padx=(0, 8))
+    icone.pack(side=tk.LEFT, padx=(0, 6))
 
-    lbl = tk.Label(row, text=placeholder, font=("Segoe UI", 9),
+    lbl = tk.Label(row, text=placeholder, font=("Segoe UI", 8),
                    bg=COR_CARD, fg=COR_SUBTEXTO, anchor="w")
     lbl.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
-    btn = tk.Button(row, text="Selecionar", font=("Segoe UI", 9),
+    btn = tk.Button(row, text="Selecionar", font=("Segoe UI", 8),
                     bg=COR_BG, fg=COR_PRIMARIA, relief="flat", cursor="hand2",
-                    padx=12, pady=4, bd=0,
+                    padx=10, pady=2, bd=0,
                     highlightbackground=COR_BORDA, highlightthickness=1,
                     command=comando)
     btn.pack(side=tk.RIGHT)
 
-    return lbl
+    return lbl, frame_geral
 
 
-label_planilha = arquivo_row(conteudo, "Selecionar Planilha",
-                              _draw_file_icon, selecionar_planilha,
-                              "Nenhuma planilha selecionada")
-label_pasta    = arquivo_row(conteudo, "Selecionar Pasta PDFs",
-                              _draw_folder_icon, selecionar_pasta,
-                              "Nenhuma pasta selecionada")
+label_planilha, frame_planilha_geral = arquivo_row(conteudo, "Selecionar Planilha",
+                                              _draw_file_icon, selecionar_planilha,
+                                              "Nenhuma planilha selecionada")
+label_pasta, frame_pasta_geral = arquivo_row(conteudo, "Selecionar Pasta PDFs",
+                                           _draw_folder_icon, selecionar_pasta,
+                                           "Nenhuma pasta selecionada")
+
+# ── Frame recorte info — MODIFICADO: Fora do card branco, inserido no 'conteudo' ───
+
+frame_recorte_info = tk.Frame(conteudo, bg="#FFF7ED",
+                               highlightbackground="#1348F8", highlightthickness=1,
+                               padx=10, pady=6)  # Modificado: Padding menor
+
+frame_recorte_esq = tk.Frame(frame_recorte_info, bg="#FFF7ED")
+frame_recorte_esq.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+tk.Label(frame_recorte_esq, text="✂  Área de Recorte",
+         font=("Segoe UI", 8, "bold"), bg="#FFF7ED", fg="#1348F8").pack(anchor="w")
+
+label_recorte_info = tk.Label(frame_recorte_esq,
+    text="Nenhuma área definida — clique em Definir Área",
+    font=("Segoe UI", 8), bg="#FFF7ED", fg="#1348F8")
+label_recorte_info.pack(anchor="w", pady=(1, 0))
+
+tk.Button(frame_recorte_info, text="✂  Definir Área",
+          font=("Segoe UI", 8, "bold"), bg="#1348F8", fg="white",
+          relief="flat", cursor="hand2", padx=10, pady=4,
+          command=definir_recorte).pack(side=tk.RIGHT)
 
 # ── Separador ─────────────────────────────────────────────────────────────────
 
-tk.Frame(conteudo, bg=COR_BORDA, height=1).pack(fill=tk.X, pady=10)
+tk.Frame(conteudo, bg=COR_BORDA, height=1).pack(fill=tk.X, pady=8)
 
 # ── Botão gerar ───────────────────────────────────────────────────────────────
 
@@ -688,33 +640,29 @@ frame_btn.pack(fill=tk.X)
 
 btn_gerar = tk.Button(frame_btn,
                       text="  GERAR POWERPOINT   →",
-                      font=("Segoe UI", 12, "bold"),
+                      font=("Segoe UI", 11, "bold"),  # Modificado: Fonte 12 -> 11
                       bg=COR_BTN_VERDE, fg="white", relief="flat",
-                      cursor="hand2", pady=14, anchor="center",
+                      cursor="hand2", pady=10, anchor="center",  # Modificado: pady 14 -> 10
                       command=gerar)
 btn_gerar.pack(fill=tk.X)
 
 btn_gerar.bind("<Enter>", lambda e: btn_gerar.config(bg=COR_BTN_VERDE_H))
 btn_gerar.bind("<Leave>", lambda e: btn_gerar.config(bg=COR_BTN_VERDE))
 
-# Ícone no botão (Canvas sobreposto à esquerda)
-frame_btn_icon = tk.Frame(frame_btn, bg=COR_BTN_VERDE, width=36)
-
 # ── Status ────────────────────────────────────────────────────────────────────
 
 frame_status = tk.Frame(conteudo, bg=COR_BG)
-frame_status.pack(fill=tk.X, pady=(12, 0))
+frame_status.pack(fill=tk.X, pady=(8, 0))
 
-# Ícone de relógio em canvas
-cnv_status = tk.Canvas(frame_status, width=18, height=18, bg=COR_BG,
+cnv_status = tk.Canvas(frame_status, width=16, height=16, bg=COR_BG,
                         highlightthickness=0)
 cnv_status.pack(side=tk.LEFT, padx=(0, 6))
-cnv_status.create_oval(1, 1, 17, 17, outline=COR_STATUS, width=1.5)
-cnv_status.create_line(9, 9, 9, 4,  fill=COR_STATUS, width=1.5)
-cnv_status.create_line(9, 9, 13, 9, fill=COR_STATUS, width=1.5)
+cnv_status.create_oval(1, 1, 15, 15, outline=COR_STATUS, width=1.5)
+cnv_status.create_line(8, 8, 8, 4,  fill=COR_STATUS, width=1.5)
+cnv_status.create_line(8, 8, 12, 8, fill=COR_STATUS, width=1.5)
 
 label_status = tk.Label(frame_status, text="Aguardando processamento...",
-                         font=("Segoe UI", 9), bg=COR_BG, fg=COR_STATUS)
+                         font=("Segoe UI", 8), bg=COR_BG, fg=COR_STATUS)
 label_status.pack(side=tk.LEFT)
 
 # ── Inicializa modo padrão ────────────────────────────────────────────────────
