@@ -44,6 +44,9 @@ def montar_apresentacao(pallets_pdfs, modo, nome_excel=None, cfg_override=None, 
     # Usa cfg_override se a pessoa editou as configurações, senão usa config.py
     if cfg_override:
         cfg = cfg_override
+        # Garante que mostrar_label esteja definido conforme o modo
+        if "mostrar_label" not in cfg:
+            cfg["mostrar_label"] = (modo == "recorte")
     elif modo == "pagina":
         cfg = {
             "x_inicio":    PAGINA_GRID_X_INICIO,
@@ -53,6 +56,7 @@ def montar_apresentacao(pallets_pdfs, modo, nome_excel=None, cfg_override=None, 
             "esp_y":       PAGINA_ESPACAMENTO_Y,
             "largura_max": PAGINA_IMAGEM_LARGURA,
             "altura_max":  PAGINA_IMAGEM_ALTURA,
+            "mostrar_label": False,
         }
     else:
         cfg = {
@@ -63,6 +67,7 @@ def montar_apresentacao(pallets_pdfs, modo, nome_excel=None, cfg_override=None, 
             "esp_y":       RECORTE_ESPACAMENTO_Y,
             "largura_max": RECORTE_IMAGEM_LARGURA,
             "altura_max":  RECORTE_IMAGEM_ALTURA,
+            "mostrar_label": True,
         }
 
     prs = Presentation(TEMPLATE_PATH)
@@ -109,12 +114,45 @@ def _duplicar_slide(prs, index):
     return novo_slide
 
 
+# Altura reservada para o label de nome abaixo da imagem (em polegadas)
+_LABEL_ALTURA = 0.22
+
+
+def _adicionar_label_nome(slide, texto, x, y, largura):
+    """Insere uma caixa de texto com o nome do arquivo abaixo da imagem."""
+    caixa = slide.shapes.add_textbox(
+        Inches(x),
+        Inches(y),
+        Inches(largura),
+        Inches(_LABEL_ALTURA),
+    )
+    frame = caixa.text_frame
+    frame.word_wrap = False
+    p = frame.paragraphs[0]
+    p.alignment = 2  # PP_ALIGN.CENTER = 2
+    run = p.add_run()
+    run.text = texto
+    run.font.size = Pt(7)
+    run.font.bold = False
+    run.font.color.rgb = RGBColor(60, 60, 60)
+
+
 def _adicionar_imagens(slide, arquivos_pdf, cfg, callback_status):
 
     x = cfg["x_inicio"]
     y = cfg["y_inicio"]
     coluna = 0
     imagens_temp = []
+
+    # Detecta se é modo recorte pela chave "colunas" (recorte usa 3, pagina usa 5)
+    # mas o mais seguro é sempre mostrar o label — ele só ocupa espaço se existir texto
+    mostrar_label = cfg.get("mostrar_label", True)
+
+    # Espaço extra que o label ocupa (imagem + label + espaçamento)
+    espaco_label = _LABEL_ALTURA if mostrar_label else 0
+
+    # Guarda a maior altura de imagem da linha atual para avançar y corretamente
+    altura_linha_atual = 0
 
     for pdf_path in arquivos_pdf:
 
@@ -151,13 +189,28 @@ def _adicionar_imagens(slide, arquivos_pdf, cfg, callback_status):
                 height=Inches(altura_slide)
             )
 
+            if mostrar_label:
+                _adicionar_label_nome(
+                    slide,
+                    nome_sem_ext,
+                    x,
+                    y + altura_slide,
+                    largura_slide,
+                )
+
+            # Registra a maior altura da linha para avançar y corretamente
+            altura_ocupada = altura_slide + espaco_label
+            if altura_ocupada > altura_linha_atual:
+                altura_linha_atual = altura_ocupada
+
             x += largura_slide + cfg["esp_x"]
             coluna += 1
 
             if coluna >= cfg["colunas"]:
                 coluna = 0
                 x = cfg["x_inicio"]
-                y += altura_slide + cfg["esp_y"]
+                y += altura_linha_atual + cfg["esp_y"]
+                altura_linha_atual = 0
 
         except Exception as erro:
             print(f"Erro ao inserir imagem {nome_pdf}: {erro}")
